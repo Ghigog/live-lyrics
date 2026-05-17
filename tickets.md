@@ -129,8 +129,8 @@ graph TD
     *   Support robust LRC time stamps with dynamic parsing.
     *   Smoothly interpolate scroller vertically using UI `Tween` animations to avoid jarring jumps.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Lyric text highlights bright cyan right on time with the mock audio playback indicator.
-    *   [ ] Scrolling container smoothly glides up/down to keep active lines vertically centered.
+    *   [x] Lyric text highlights bright cyan right on time with the authoritative media playback indicator.
+    *   [x] Scrolling container smoothly glides up/down to keep active lines vertically centered (implemented via active UI Tweens).
 
 ---
 

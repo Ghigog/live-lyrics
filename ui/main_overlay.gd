@@ -13,7 +13,8 @@ var scroll_container: ScrollContainer
 var lyrics_list: Array[Dictionary] = []
 var active_line_index: int = -1
 var song_time: float = 0.0
-var song_duration: float = 20.0 # Match MediaListener cycle time for mock tracks
+var song_duration: float = 0.0
+var is_playing: bool = false
 
 # Drag to move variables
 var dragging: bool = false
@@ -23,8 +24,8 @@ var drag_position: Vector2i = Vector2i()
 var click_through_enabled: bool = false
 
 func _ready() -> void:
-	# Ensure viewport background is transparent
-	get_viewport().transparent_bg = true
+	# Ensure window background is transparent
+	get_window().transparent_bg = true
 	
 	# Programmatic UI setup to ensure robustness and easy Y2K styling
 	_build_ui_layout()
@@ -32,11 +33,12 @@ func _ready() -> void:
 	# Connect to core signal bus
 	GlobalSignals.track_changed.connect(_on_track_changed)
 	GlobalSignals.lyrics_fetched.connect(_on_lyrics_fetched)
+	GlobalSignals.playback_position_updated.connect(_on_playback_position_updated)
 
 func _process(delta: float) -> void:
-	# Increment mock song time
-	if lyrics_list.size() > 0:
-		song_time = fmod(song_time + delta, song_duration)
+	# Local timeline interpolation (Client-side prediction for ultra-smoothness)
+	if is_playing and lyrics_list.size() > 0:
+		song_time = min(song_time + delta, song_duration)
 		_update_lyrics_scroller()
 
 func _build_ui_layout() -> void:
@@ -159,9 +161,34 @@ func _on_track_changed(title: String, artist: String, album: String) -> void:
 	if not album.is_empty():
 		display_text += "\n[%s]" % album
 	track_label.text = display_text
-	# Reset lyric scroller timing on song change
+	
+	# Clear previous lyrics instantly and show a temporary searching placeholder
+	lyrics_list = []
+	for child in lyrics_container.get_children():
+		child.queue_free()
+	
+	var loading_label = Label.new()
+	loading_label.text = "Searching online for lyrics..."
+	loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	loading_label.add_theme_font_size_override("font_size", 14)
+	loading_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.6))
+	lyrics_container.add_child(loading_label)
+	
+	# Reset state on song change
 	song_time = 0.0
+	song_duration = 0.0
+	is_playing = false
 	active_line_index = -1
+
+func _on_playback_position_updated(seconds: float, duration: float, playing: bool) -> void:
+	# Reconcile local timeline with authoritative OS media timeline
+	song_time = seconds
+	song_duration = duration
+	is_playing = playing
+	print("[MainOverlay] Timeline sync: song_time=%.2f, duration=%.2f, is_playing=%s, lyrics_count=%d" % [song_time, song_duration, str(is_playing), lyrics_list.size()])
+	
+	if lyrics_list.size() > 0:
+		_update_lyrics_scroller()
 
 func _on_lyrics_fetched(lyrics_data: Dictionary) -> void:
 	# Clear previous lyrics
@@ -206,6 +233,7 @@ func _update_lyrics_scroller() -> void:
 			
 	if target_index != active_line_index and target_index != -1:
 		active_line_index = target_index
+		print("[MainOverlay] Lyric highlight change to index: %d ('%s')" % [active_line_index, lyrics_list[active_line_index]["text"]])
 		
 		# Update UI line highlighting
 		var children = lyrics_container.get_children()

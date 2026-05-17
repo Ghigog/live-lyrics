@@ -8,7 +8,7 @@ signal track_changed(title: String, artist: String, album: String)
 signal lyrics_fetched(lyrics_data: Dictionary)
 
 # Signal emitted when the current song's playback position updates
-signal playback_position_updated(seconds: float)
+signal playback_position_updated(seconds: float, duration: float, is_playing: bool)
 
 # Signal emitted when the overlay visibility is toggled
 signal overlay_toggled(is_visible: bool)

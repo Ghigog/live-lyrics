@@ -60,7 +60,7 @@ func _on_track_changed(title: String, artist: String, album: String) -> void:
 	fetch_lyrics_online(title, artist)
 
 func fetch_lyrics_online(title: String, artist: String) -> void:
-	var url = "https://lrclib.net/api/get?artist=%s&title=%s" % [
+	var url = "https://lrclib.net/api/get?artist_name=%s&track_name=%s" % [
 		artist.uri_encode(),
 		title.uri_encode()
 	]
