@@ -18,7 +18,28 @@ var _exit_thread: bool = false
 var _script_path: String
 
 func _ready() -> void:
-	_script_path = ProjectSettings.globalize_path("res://get_media.ps1")
+	if OS.get_name() == "Windows":
+		var dest_dir = OS.get_user_data_dir()
+		DirAccess.make_dir_recursive_absolute(dest_dir)
+		_script_path = dest_dir.path_join("get_media.ps1")
+		
+		# Extract get_media.ps1 from res:// inside the package to the local user data folder
+		var file = FileAccess.open("res://get_media.ps1", FileAccess.READ)
+		if file:
+			var content = file.get_as_text()
+			file.close()
+			
+			var write_file = FileAccess.open(_script_path, FileAccess.WRITE)
+			if write_file:
+				write_file.store_string(content)
+				write_file.close()
+				print("[MediaListener] Extracted get_media.ps1 to: %s" % _script_path)
+			else:
+				print("[MediaListener] ERROR: Failed to write get_media.ps1 to physical disk")
+		else:
+			print("[MediaListener] ERROR: Failed to read res://get_media.ps1")
+	else:
+		_script_path = ProjectSettings.globalize_path("res://get_media.ps1")
 	
 	if mock_mode:
 		_simulate_mock_playback()
