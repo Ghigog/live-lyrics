@@ -4,7 +4,7 @@ extends Control
 ## window, handles drag-to-move window interaction, and handles scroll-sync of lyrics.
 
 # UI Elements created dynamically
-var panel: PanelContainer
+var panel: Panel
 var track_label: Label
 var lyrics_container: VBoxContainer
 var scroll_container: ScrollContainer
