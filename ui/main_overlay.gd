@@ -172,7 +172,7 @@ func toggle_click_through() -> void:
 
 func _on_track_changed(title: String, artist: String, album: String) -> void:
 	var display_text = "%s\nby %s" % [title, artist]
-	if not album.is_empty():
+	if album != null and not album.is_empty():
 		display_text += "\n[%s]" % album
 	track_label.text = display_text
 	

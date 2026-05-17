@@ -93,7 +93,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	var data = json.get_data()
 	if typeof(data) == TYPE_DICTIONARY:
 		var synced_text = data.get("syncedLyrics", "")
-		if not synced_text.is_empty():
+		if synced_text != null and typeof(synced_text) == TYPE_STRING and not synced_text.is_empty():
 			var parsed = parse_lrc(synced_text)
 			GlobalSignals.lyrics_fetched.emit({
 				"synced": true,
@@ -102,7 +102,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		else:
 			# Fallback to plain lyrics if synced not available
 			var plain_text = data.get("plainLyrics", "")
-			if plain_text.is_empty():
+			if plain_text == null or typeof(plain_text) != TYPE_STRING or plain_text.is_empty():
 				plain_text = "No lyrics text found in database."
 			GlobalSignals.lyrics_fetched.emit({
 				"synced": false,
