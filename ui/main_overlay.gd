@@ -5,10 +5,10 @@ extends Control
 
 # UI Elements created dynamically
 var panel: Panel
-var track_label: Label
+var title_label: Label
+var subtitle_label: Label
 var lyrics_container: VBoxContainer
 var scroll_container: ScrollContainer
-var bubble: Panel
 
 # Lyric display tracking
 var lyrics_list: Array[Dictionary] = []
@@ -20,9 +20,6 @@ var is_playing: bool = false
 # Drag to move variables
 var dragging: bool = false
 var drag_position: Vector2i = Vector2i()
-
-# Click-through toggle state
-var click_through_enabled: bool = false
 
 # Resizing cursor-hover tracking (actual resize is delegated to the OS)
 const RESIZE_BORDER: float = 12.0 # Detect range in pixels
@@ -53,12 +50,6 @@ func _process(delta: float) -> void:
 	if is_playing and lyrics_list.size() > 0:
 		song_time = min(song_time + delta, song_duration)
 		_update_lyrics_scroller()
-	
-	# Y2K Bubble Droplet slow organic scale pulsation!
-	if bubble != null:
-		var time = Time.get_ticks_msec() / 1000.0
-		var scale_val = 1.0 + (sin(time * 2.0) * 0.05)
-		bubble.scale = Vector2(scale_val, scale_val)
 
 func _build_ui_layout() -> void:
 	# 1. Glass Background Panel
@@ -96,9 +87,9 @@ func _build_ui_layout() -> void:
 	var margin = MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 32)
-	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 32)
-	margin.add_theme_constant_override("margin_bottom", 16)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	add_child(margin)
 	
 	# 3. Horizontal Splitter (Left: Track Info, Right: Lyrics Scroller)
@@ -110,142 +101,49 @@ func _build_ui_layout() -> void:
 	var track_vbox = VBoxContainer.new()
 	track_vbox.custom_minimum_size = Vector2(200, 0)
 	track_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	track_vbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h_box.add_child(track_vbox)
 	
 	# Create a crisp Segoe UI SystemFont stack (Phase 4 requirement)
 	var sys_font = SystemFont.new()
 	sys_font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
 	
-	# Y2K Bubble Icon (Animated water-droplet visual effect)
-	bubble = Panel.new()
-	bubble.custom_minimum_size = Vector2(32, 32)
-	bubble.pivot_offset = Vector2(16, 16) # Pivot centered for pulsation
-	var bubble_style = StyleBoxFlat.new()
-	bubble_style.bg_color = Color(0.0, 0.7, 1.0, 0.5)
-	bubble_style.corner_radius_top_left = 16
-	bubble_style.corner_radius_top_right = 16
-	bubble_style.corner_radius_bottom_left = 16
-	bubble_style.corner_radius_bottom_right = 16
-	bubble.add_theme_stylebox_override("panel", bubble_style)
-	track_vbox.add_child(bubble)
+	var title_hbox = HBoxContainer.new()
+	title_hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+	title_hbox.add_theme_constant_override("separation", 12)
+	track_vbox.add_child(title_hbox)
 	
-	# Track name & Artist Label
-	track_label = Label.new()
-	track_label.text = "Waiting for Media..."
-	track_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	track_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	track_label.add_theme_font_override("font", sys_font)
-	track_label.add_theme_font_size_override("font_size", 13)
-	# Aesthetic Glow
-	track_label.add_theme_color_override("font_shadow_color", Color(0, 0.5, 0.8, 0.5))
-	track_label.add_theme_constant_override("shadow_offset_x", 1)
-	track_label.add_theme_constant_override("shadow_offset_y", 1)
-	track_vbox.add_child(track_label)
+	# Title Label
+	title_label = Label.new()
+	title_label.text = "Waiting for Media..."
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title_label.add_theme_font_override("font", sys_font)
+	title_label.add_theme_font_size_override("font_size", 24)
+	title_label.add_theme_color_override("font_shadow_color", Color(0, 0.5, 0.8, 0.5))
+	title_label.add_theme_constant_override("shadow_offset_x", 1)
+	title_label.add_theme_constant_override("shadow_offset_y", 1)
+	title_hbox.add_child(title_label)
 	
-	# Space out buttons cleanly
-	var btn_vbox = VBoxContainer.new()
-	btn_vbox.add_theme_constant_override("separation", 6)
-	track_vbox.add_child(btn_vbox)
+	# Subtitle Label
+	subtitle_label = Label.new()
+	subtitle_label.text = ""
+	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	subtitle_label.size_flags_vertical = Control.SIZE_SHRINK_END # Align with bottom of title
+	subtitle_label.add_theme_font_override("font", sys_font)
+	subtitle_label.add_theme_font_size_override("font_size", 12)
+	subtitle_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0, 0.8))
 	
-	# High-Gloss Bubble Button StyleBoxes
-	var normal_style = StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.0, 0.6, 0.8, 0.3)
-	normal_style.border_width_left = 1
-	normal_style.border_width_top = 1
-	normal_style.border_width_right = 1
-	normal_style.border_width_bottom = 1
-	normal_style.border_color = Color(0.3, 0.85, 1.0, 0.5)
-	normal_style.corner_radius_top_left = 12
-	normal_style.corner_radius_top_right = 12
-	normal_style.corner_radius_bottom_left = 12
-	normal_style.corner_radius_bottom_right = 12
-	
-	var hover_style = StyleBoxFlat.new()
-	hover_style.bg_color = Color(0.0, 0.7, 0.9, 0.5)
-	hover_style.border_width_left = 1
-	hover_style.border_width_top = 1
-	hover_style.border_width_right = 1
-	hover_style.border_width_bottom = 1
-	hover_style.border_color = Color(0.4, 0.95, 1.0, 0.7)
-	hover_style.corner_radius_top_left = 12
-	hover_style.corner_radius_top_right = 12
-	hover_style.corner_radius_bottom_left = 12
-	hover_style.corner_radius_bottom_right = 12
-	
-	var pressed_style = StyleBoxFlat.new()
-	pressed_style.bg_color = Color(0.0, 0.5, 0.7, 0.6)
-	pressed_style.corner_radius_top_left = 12
-	pressed_style.corner_radius_top_right = 12
-	pressed_style.corner_radius_bottom_left = 12
-	pressed_style.corner_radius_bottom_right = 12
-	
-	# 1. Click-Through Toggle Button
-	var btn_passthrough = Button.new()
-	btn_passthrough.text = "Click-Through [T]"
-	btn_passthrough.custom_minimum_size = Vector2(160, 26)
-	btn_passthrough.focus_mode = Control.FOCUS_NONE
-	btn_passthrough.add_theme_stylebox_override("normal", normal_style)
-	btn_passthrough.add_theme_stylebox_override("hover", hover_style)
-	btn_passthrough.add_theme_stylebox_override("pressed", pressed_style)
-	btn_passthrough.add_theme_font_override("font", sys_font)
-	btn_passthrough.add_theme_font_size_override("font_size", 10)
-	btn_passthrough.pressed.connect(toggle_click_through)
-	btn_vbox.add_child(btn_passthrough)
-	
-	# 2. Quit Button
-	var btn_quit = Button.new()
-	btn_quit.text = "Quit [ESC]"
-	btn_quit.custom_minimum_size = Vector2(160, 26)
-	btn_quit.focus_mode = Control.FOCUS_NONE
-	
-	var quit_normal = normal_style.duplicate()
-	quit_normal.bg_color = Color(0.8, 0.2, 0.2, 0.3)
-	quit_normal.border_color = Color(1.0, 0.4, 0.4, 0.5)
-	
-	var quit_hover = hover_style.duplicate()
-	quit_hover.bg_color = Color(0.9, 0.3, 0.3, 0.5)
-	quit_hover.border_color = Color(1.0, 0.5, 0.5, 0.7)
-	
-	var quit_pressed = pressed_style.duplicate()
-	quit_pressed.bg_color = Color(0.7, 0.1, 0.1, 0.6)
-	
-	btn_quit.add_theme_stylebox_override("normal", quit_normal)
-	btn_quit.add_theme_stylebox_override("hover", quit_hover)
-	btn_quit.add_theme_stylebox_override("pressed", quit_pressed)
-	btn_quit.add_theme_font_override("font", sys_font)
-	btn_quit.add_theme_font_size_override("font_size", 10)
-	btn_quit.pressed.connect(func(): get_tree().quit())
-	btn_vbox.add_child(btn_quit)
-	
-	# Micro-hover scaling animations
-	btn_passthrough.pivot_offset = Vector2(80, 13)
-	btn_passthrough.mouse_entered.connect(func():
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_passthrough, "scale", Vector2(1.05, 1.05), 0.12)
-	)
-	btn_passthrough.mouse_exited.connect(func():
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_passthrough, "scale", Vector2(1.0, 1.0), 0.12)
-	)
-	
-	btn_quit.pivot_offset = Vector2(80, 13)
-	btn_quit.mouse_entered.connect(func():
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_quit, "scale", Vector2(1.05, 1.05), 0.12)
-	)
-	btn_quit.mouse_exited.connect(func():
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_quit, "scale", Vector2(1.0, 1.0), 0.12)
-	)
-	
-	# Instruction tooltip Label
-	var instructions = Label.new()
-	instructions.text = "[L-Drag to Move] [R-Click to Exit]"
-	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	instructions.add_theme_font_override("font", sys_font)
-	instructions.add_theme_font_size_override("font_size", 8)
-	instructions.add_theme_color_override("font_color", Color(0.8, 0.95, 1.0, 0.7))
-	track_vbox.add_child(instructions)
+	# Subtitle Margin trick for better baseline alignment with the 24px title font
+	var sub_margin = MarginContainer.new()
+	sub_margin.add_theme_constant_override("margin_bottom", 6)
+	sub_margin.add_child(subtitle_label)
+	title_hbox.add_child(sub_margin)
 	
 	# Right Side: Lyrics Scroller
 	scroll_container = ScrollContainer.new()
 	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll_container.custom_minimum_size = Vector2(250, 0)
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	h_box.add_child(scroll_container)
@@ -311,26 +209,14 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:
 			get_tree().quit()
-		elif event.keycode == KEY_T:
-			toggle_click_through()
 
-## Toggle click-through mode
-func toggle_click_through() -> void:
-	click_through_enabled = !click_through_enabled
-	if click_through_enabled:
-		DisplayServer.window_set_mouse_passthrough(PackedVector2Array([Vector2(-1, -1)]))
-		panel.self_modulate.a = 0.4 # Fade overlay visually when click-through is enabled
-		print("[MainOverlay] Mouse click-through ENABLED")
-	else:
-		DisplayServer.window_set_mouse_passthrough(PackedVector2Array())
-		panel.self_modulate.a = 1.0
-		print("[MainOverlay] Mouse click-through DISABLED")
 
 func _on_track_changed(title: String, artist: String, album: String) -> void:
-	var display_text = "%s\nby %s" % [title, artist]
+	title_label.text = title
+	var sub_text = artist
 	if album != null and not album.is_empty():
-		display_text += "\n[%s]" % album
-	track_label.text = display_text
+		sub_text += " - " + album
+	subtitle_label.text = sub_text
 	
 	# Clear previous lyrics instantly and show a temporary searching placeholder
 	lyrics_list = []
@@ -415,9 +301,13 @@ func _update_lyrics_scroller() -> void:
 			if not label: continue
 			
 			if i == active_line_index:
-				# Highlight active line in bright aqua with glow
-				label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.8, 1.0))
+				# Highlight active line in pure white with neutral blue outline
+				label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 				label.add_theme_font_size_override("font_size", 16)
+				
+				# Neutral blue outline matching the title theme for perfect white-background legibility
+				label.add_theme_color_override("font_outline_color", Color(0.0, 0.5, 0.8, 0.9))
+				label.add_theme_constant_override("outline_size", 2)
 				
 				# Smoothly center scroller to this active line
 				var target_y = label.position.y - (scroll_container.size.y / 2.0) + (label.size.y / 2.0)
@@ -427,6 +317,10 @@ func _update_lyrics_scroller() -> void:
 				# Dim inactive lines
 				label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.4))
 				label.add_theme_font_size_override("font_size", 13)
+				
+				# Remove outline for inactive lyrics
+				label.remove_theme_color_override("font_outline_color")
+				label.remove_theme_constant_override("outline_size")
 
 func _get_sys_font() -> SystemFont:
 	var sys_font = SystemFont.new()

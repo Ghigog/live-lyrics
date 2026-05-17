@@ -9,7 +9,7 @@ shader = ExtResource("1_hc7p6")
 shader_parameter/brightness = 0.1
 shader_parameter/chromatic_shift_amount = 0.2
 shader_parameter/bend_amount = 0.4
-shader_parameter/blur_amount = 2.5
+shader_parameter/blur_amount = 2.0
 shader_parameter/grain_amount = 0.05
 shader_parameter/curve_light_blend = 0.5
 shader_parameter/rim_light_blend = 0.8
@@ -23,6 +23,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_1")
+metadata/_edit_vertical_guides_ = [1235.0]
 
 [node name="Panel" type="Panel" parent="." unique_id=982432819]
 material = SubResource("ShaderMaterial_q121i")

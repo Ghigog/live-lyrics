@@ -2,16 +2,15 @@
 
 [resource]
 bg_color = Color(1, 1, 1, 0.02)
-border_width_left = 64
-border_width_top = 64
-border_width_right = 64
-border_width_bottom = 64
+border_width_left = 30
+border_width_top = 30
+border_width_right = 30
+border_width_bottom = 30
 border_color = Color(1, 1, 1, 1)
 border_blend = true
-corner_radius_top_left = 48
-corner_radius_top_right = 48
-corner_radius_bottom_right = 48
-corner_radius_bottom_left = 48
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
 shadow_color = Color(0, 0, 0, 0)
-shadow_size = 0
-anti_aliasing_size = 0.01
+anti_aliasing_size = 3.0
