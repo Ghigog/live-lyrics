@@ -1,28 +1,35 @@
 [gd_scene format=3 uid="uid://b5410hjm3bedt"]
 
 [ext_resource type="Script" uid="uid://crlxc8u2imgrh" path="res://ui/main_overlay.gd" id="1_1"]
-[ext_resource type="Shader" uid="uid://dpqgg75r4j7p" path="res://assets/shaders/glass_panel.gdshader" id="1_hc7p6"]
+[ext_resource type="Shader" uid="uid://8k0g0de34xv1" path="res://assets/shaders/glass_panel.gdshader" id="1_hc7p6"]
+[ext_resource type="Theme" uid="uid://dhdmmuwicstn7" path="res://assets/shaders/default_theme.tres" id="3_8tisn"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8tisn"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_q121i"]
 shader = ExtResource("1_hc7p6")
 shader_parameter/brightness = 0.1
 shader_parameter/chromatic_shift_amount = 0.2
 shader_parameter/bend_amount = 0.4
-shader_parameter/blur_amount = 2.0
+shader_parameter/blur_amount = 2.5
 shader_parameter/grain_amount = 0.05
 shader_parameter/curve_light_blend = 0.5
 shader_parameter/rim_light_blend = 0.8
 shader_parameter/shadow_color = Color(0, 0, 0, 1)
 
-[sub_resource type="Theme" id="Theme_hc7p6"]
-
 [node name="MainOverlay" type="Control" unique_id=217830047]
-material = SubResource("ShaderMaterial_8tisn")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = SubResource("Theme_hc7p6")
 script = ExtResource("1_1")
+
+[node name="Panel" type="Panel" parent="." unique_id=982432819]
+material = SubResource("ShaderMaterial_q121i")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_8tisn")

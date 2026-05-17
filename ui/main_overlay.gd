@@ -8,6 +8,7 @@ var panel: Panel
 var track_label: Label
 var lyrics_container: VBoxContainer
 var scroll_container: ScrollContainer
+var bubble: Panel
 
 # Lyric display tracking
 var lyrics_list: Array[Dictionary] = []
@@ -23,11 +24,17 @@ var drag_position: Vector2i = Vector2i()
 # Click-through toggle state
 var click_through_enabled: bool = false
 
+# Resizing cursor-hover tracking (actual resize is delegated to the OS)
+const RESIZE_BORDER: float = 12.0 # Detect range in pixels
+
 func _ready() -> void:
-	# Ensure window background is transparent
+	# Ensure window background is transparent (GL Compatibility renderer supports this)
 	get_window().transparent_bg = true
 	
-	# Programmatic UI setup to ensure robustness and easy Y2K styling
+	# Force the rendering clear color to fully transparent so no dark backdrop leaks through
+	RenderingServer.set_default_clear_color(Color(0, 0, 0, 0))
+	
+	# Programmatic UI setup
 	_build_ui_layout()
 	
 	# Connect to core signal bus
@@ -35,48 +42,55 @@ func _ready() -> void:
 	GlobalSignals.lyrics_fetched.connect(_on_lyrics_fetched)
 	GlobalSignals.playback_position_updated.connect(_on_playback_position_updated)
 
+func _notification(what: int) -> void:
+	# Re-anchor the panel whenever the OS reports a window size change.
+	# This ensures the glass background always fills the window after the user resizes it.
+	if what == NOTIFICATION_WM_SIZE_CHANGED and panel != null:
+		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
 func _process(delta: float) -> void:
 	# Local timeline interpolation (Client-side prediction for ultra-smoothness)
 	if is_playing and lyrics_list.size() > 0:
 		song_time = min(song_time + delta, song_duration)
 		_update_lyrics_scroller()
+	
+	# Y2K Bubble Droplet slow organic scale pulsation!
+	if bubble != null:
+		var time = Time.get_ticks_msec() / 1000.0
+		var scale_val = 1.0 + (sin(time * 2.0) * 0.05)
+		bubble.scale = Vector2(scale_val, scale_val)
 
 func _build_ui_layout() -> void:
-	# 1. Decoupled Y2K Glass Background Panel (Avoids squishing internal margins)
-	panel = Panel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
-	# Y2K Glass StyleBox (Ported from pneumaturgy-godot's base_stylebox math)
-	var glass_style = StyleBoxFlat.new()
-	glass_style.bg_color = Color(0.0, 0.35, 0.55, 0.05) # Soft center transparent tint
-	glass_style.border_width_left = 64
-	glass_style.border_width_top = 64
-	glass_style.border_width_right = 64
-	glass_style.border_width_bottom = 64
-	glass_style.border_color = Color(0.2, 0.75, 0.95, 0.5) # Glowing glass blended border
-	glass_style.border_blend = true
-	glass_style.corner_radius_top_left = 48
-	glass_style.corner_radius_top_right = 48
-	glass_style.corner_radius_bottom_left = 48
-	glass_style.corner_radius_bottom_right = 48
-	glass_style.shadow_color = Color(0, 0, 0, 0.12)
-	glass_style.shadow_size = 32
-	panel.add_theme_stylebox_override("panel", glass_style)
-	
-	# Load and apply the custom pneumaturgy-godot Y2K Liquid-Glass Shader
-	var shader_material = ShaderMaterial.new()
-	shader_material.shader = load("res://assets/shaders/glass_panel.gdshader")
-	shader_material.set_shader_parameter("brightness", 0.08)
-	shader_material.set_shader_parameter("chromatic_shift_amount", 0.15)
-	shader_material.set_shader_parameter("bend_amount", 0.25)
-	shader_material.set_shader_parameter("blur_amount", 3.0) # Sleek blurred desktop background refraction
-	shader_material.set_shader_parameter("grain_amount", 0.03) # Subtle organic grain texture
-	shader_material.set_shader_parameter("curve_light_blend", 0.5)
-	shader_material.set_shader_parameter("rim_light_blend", 0.7)
-	shader_material.set_shader_parameter("shadow_color", Color(0, 0, 0, 0.15))
-	panel.material = shader_material
-	
-	add_child(panel)
+	# 1. Glass Background Panel
+	# Prefer the scene-defined child Panel so the user can edit it directly in the editor.
+	# If no Panel child exists (e.g. first run without the tscn), create one as a fallback.
+	if has_node("Panel"):
+		panel = get_node("Panel") as Panel
+		# Ensure it covers the full window (already set in tscn, belt-and-suspenders here)
+		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# NOTE: Shader params are intentionally NOT overridden here — respect whatever
+		# the user has set on the ShaderMaterial in the Godot editor.
+	else:
+		# Fallback: programmatically create the glass panel if scene child is missing
+		panel = Panel.new()
+		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		
+		var glass_style = load("res://assets/shaders/base_stylebox.tres") as StyleBox
+		panel.add_theme_stylebox_override("panel", glass_style)
+		
+		var shader_material = ShaderMaterial.new()
+		shader_material.shader = load("res://assets/shaders/glass_panel.gdshader")
+		shader_material.set_shader_parameter("brightness", 0.1)
+		shader_material.set_shader_parameter("chromatic_shift_amount", 0.2)
+		shader_material.set_shader_parameter("bend_amount", 0.4)
+		shader_material.set_shader_parameter("blur_amount", 2.5)
+		shader_material.set_shader_parameter("grain_amount", 0.05)
+		shader_material.set_shader_parameter("curve_light_blend", 0.5)
+		shader_material.set_shader_parameter("rim_light_blend", 0.8)
+		shader_material.set_shader_parameter("shadow_color", Color(0, 0, 0, 1))
+		panel.material = shader_material
+		
+		add_child(panel)
 	
 	# 2. Main Content Margin layout (Sibling to glass panel, free from border constraints)
 	var margin = MarginContainer.new()
@@ -98,9 +112,14 @@ func _build_ui_layout() -> void:
 	track_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	h_box.add_child(track_vbox)
 	
-	# Y2K Bubble Icon (Visual effect)
-	var bubble = Panel.new()
+	# Create a crisp Segoe UI SystemFont stack (Phase 4 requirement)
+	var sys_font = SystemFont.new()
+	sys_font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
+	
+	# Y2K Bubble Icon (Animated water-droplet visual effect)
+	bubble = Panel.new()
 	bubble.custom_minimum_size = Vector2(32, 32)
+	bubble.pivot_offset = Vector2(16, 16) # Pivot centered for pulsation
 	var bubble_style = StyleBoxFlat.new()
 	bubble_style.bg_color = Color(0.0, 0.7, 1.0, 0.5)
 	bubble_style.corner_radius_top_left = 16
@@ -115,17 +134,112 @@ func _build_ui_layout() -> void:
 	track_label.text = "Waiting for Media..."
 	track_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	track_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	track_label.add_theme_font_override("font", sys_font)
+	track_label.add_theme_font_size_override("font_size", 13)
 	# Aesthetic Glow
 	track_label.add_theme_color_override("font_shadow_color", Color(0, 0.5, 0.8, 0.5))
 	track_label.add_theme_constant_override("shadow_offset_x", 1)
 	track_label.add_theme_constant_override("shadow_offset_y", 1)
 	track_vbox.add_child(track_label)
 	
+	# Space out buttons cleanly
+	var btn_vbox = VBoxContainer.new()
+	btn_vbox.add_theme_constant_override("separation", 6)
+	track_vbox.add_child(btn_vbox)
+	
+	# High-Gloss Bubble Button StyleBoxes
+	var normal_style = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.0, 0.6, 0.8, 0.3)
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(0.3, 0.85, 1.0, 0.5)
+	normal_style.corner_radius_top_left = 12
+	normal_style.corner_radius_top_right = 12
+	normal_style.corner_radius_bottom_left = 12
+	normal_style.corner_radius_bottom_right = 12
+	
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.0, 0.7, 0.9, 0.5)
+	hover_style.border_width_left = 1
+	hover_style.border_width_top = 1
+	hover_style.border_width_right = 1
+	hover_style.border_width_bottom = 1
+	hover_style.border_color = Color(0.4, 0.95, 1.0, 0.7)
+	hover_style.corner_radius_top_left = 12
+	hover_style.corner_radius_top_right = 12
+	hover_style.corner_radius_bottom_left = 12
+	hover_style.corner_radius_bottom_right = 12
+	
+	var pressed_style = StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.0, 0.5, 0.7, 0.6)
+	pressed_style.corner_radius_top_left = 12
+	pressed_style.corner_radius_top_right = 12
+	pressed_style.corner_radius_bottom_left = 12
+	pressed_style.corner_radius_bottom_right = 12
+	
+	# 1. Click-Through Toggle Button
+	var btn_passthrough = Button.new()
+	btn_passthrough.text = "Click-Through [T]"
+	btn_passthrough.custom_minimum_size = Vector2(160, 26)
+	btn_passthrough.focus_mode = Control.FOCUS_NONE
+	btn_passthrough.add_theme_stylebox_override("normal", normal_style)
+	btn_passthrough.add_theme_stylebox_override("hover", hover_style)
+	btn_passthrough.add_theme_stylebox_override("pressed", pressed_style)
+	btn_passthrough.add_theme_font_override("font", sys_font)
+	btn_passthrough.add_theme_font_size_override("font_size", 10)
+	btn_passthrough.pressed.connect(toggle_click_through)
+	btn_vbox.add_child(btn_passthrough)
+	
+	# 2. Quit Button
+	var btn_quit = Button.new()
+	btn_quit.text = "Quit [ESC]"
+	btn_quit.custom_minimum_size = Vector2(160, 26)
+	btn_quit.focus_mode = Control.FOCUS_NONE
+	
+	var quit_normal = normal_style.duplicate()
+	quit_normal.bg_color = Color(0.8, 0.2, 0.2, 0.3)
+	quit_normal.border_color = Color(1.0, 0.4, 0.4, 0.5)
+	
+	var quit_hover = hover_style.duplicate()
+	quit_hover.bg_color = Color(0.9, 0.3, 0.3, 0.5)
+	quit_hover.border_color = Color(1.0, 0.5, 0.5, 0.7)
+	
+	var quit_pressed = pressed_style.duplicate()
+	quit_pressed.bg_color = Color(0.7, 0.1, 0.1, 0.6)
+	
+	btn_quit.add_theme_stylebox_override("normal", quit_normal)
+	btn_quit.add_theme_stylebox_override("hover", quit_hover)
+	btn_quit.add_theme_stylebox_override("pressed", quit_pressed)
+	btn_quit.add_theme_font_override("font", sys_font)
+	btn_quit.add_theme_font_size_override("font_size", 10)
+	btn_quit.pressed.connect(func(): get_tree().quit())
+	btn_vbox.add_child(btn_quit)
+	
+	# Micro-hover scaling animations
+	btn_passthrough.pivot_offset = Vector2(80, 13)
+	btn_passthrough.mouse_entered.connect(func():
+		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_passthrough, "scale", Vector2(1.05, 1.05), 0.12)
+	)
+	btn_passthrough.mouse_exited.connect(func():
+		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_passthrough, "scale", Vector2(1.0, 1.0), 0.12)
+	)
+	
+	btn_quit.pivot_offset = Vector2(80, 13)
+	btn_quit.mouse_entered.connect(func():
+		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_quit, "scale", Vector2(1.05, 1.05), 0.12)
+	)
+	btn_quit.mouse_exited.connect(func():
+		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(btn_quit, "scale", Vector2(1.0, 1.0), 0.12)
+	)
+	
 	# Instruction tooltip Label
 	var instructions = Label.new()
-	instructions.text = "[L-Drag to Move] [R-Click to Exit] [T to Click-Thru]"
+	instructions.text = "[L-Drag to Move] [R-Click to Exit]"
 	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	instructions.add_theme_font_size_override("font_size", 9)
+	instructions.add_theme_font_override("font", sys_font)
+	instructions.add_theme_font_size_override("font_size", 8)
 	instructions.add_theme_color_override("font_color", Color(0.8, 0.95, 1.0, 0.7))
 	track_vbox.add_child(instructions)
 	
@@ -141,18 +255,58 @@ func _build_ui_layout() -> void:
 	lyrics_container.add_theme_constant_override("separation", 8)
 	scroll_container.add_child(lyrics_container)
 
-## Handles window movement dragging
+## Handles window movement dragging and OS-native borderless resizing.
+## Resize is delegated to the OS via start_resize_move_mode() for smooth, hardware-accelerated
+## resize without any GDScript polling overhead.
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			dragging = event.pressed
-			drag_position = DisplayServer.mouse_get_position() - DisplayServer.window_get_position()
+			if event.pressed:
+				var mouse_pos = get_local_mouse_position()
+				var size_rect = size
+				var on_right = mouse_pos.x >= size_rect.x - RESIZE_BORDER
+				var on_bottom = mouse_pos.y >= size_rect.y - RESIZE_BORDER
+				
+				# Delegate resize to the OS window manager for smooth, responsive resizing.
+				# This is the Godot best-practice for borderless window resizing.
+				if on_right and on_bottom:
+					DisplayServer.window_start_resize(DisplayServer.WINDOW_EDGE_BOTTOM_RIGHT, get_window().get_window_id())
+					get_viewport().set_input_as_handled()
+				elif on_right:
+					DisplayServer.window_start_resize(DisplayServer.WINDOW_EDGE_RIGHT, get_window().get_window_id())
+					get_viewport().set_input_as_handled()
+				elif on_bottom:
+					DisplayServer.window_start_resize(DisplayServer.WINDOW_EDGE_BOTTOM, get_window().get_window_id())
+					get_viewport().set_input_as_handled()
+				else:
+					# Regular drag-to-move
+					dragging = true
+					drag_position = DisplayServer.mouse_get_position() - DisplayServer.window_get_position()
+			else:
+				dragging = false
+				
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			# Exit overlay on Right Click
 			get_tree().quit()
 			
-	elif event is InputEventMouseMotion and dragging:
-		DisplayServer.window_set_position(DisplayServer.mouse_get_position() - drag_position)
+	elif event is InputEventMouseMotion:
+		if dragging:
+			DisplayServer.window_set_position(DisplayServer.mouse_get_position() - drag_position)
+		else:
+			# Update mouse cursor shape based on hover position over resize edges
+			var mouse_pos = get_local_mouse_position()
+			var size_rect = size
+			var on_right = mouse_pos.x >= size_rect.x - RESIZE_BORDER
+			var on_bottom = mouse_pos.y >= size_rect.y - RESIZE_BORDER
+			
+			if on_right and on_bottom:
+				mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+			elif on_right:
+				mouse_default_cursor_shape = Control.CURSOR_HSIZE
+			elif on_bottom:
+				mouse_default_cursor_shape = Control.CURSOR_VSIZE
+			else:
+				mouse_default_cursor_shape = Control.CURSOR_ARROW
 		
 	elif event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:
@@ -186,6 +340,7 @@ func _on_track_changed(title: String, artist: String, album: String) -> void:
 	var loading_label = Label.new()
 	loading_label.text = "Searching online for lyrics..."
 	loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	loading_label.add_theme_font_override("font", _get_sys_font())
 	loading_label.add_theme_font_size_override("font_size", 14)
 	loading_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.6))
 	lyrics_container.add_child(loading_label)
@@ -219,6 +374,7 @@ func _on_lyrics_fetched(lyrics_data: Dictionary) -> void:
 			var line_label = Label.new()
 			line_label.text = line.get("text", "")
 			line_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			line_label.add_theme_font_override("font", _get_sys_font())
 			line_label.add_theme_font_size_override("font_size", 14)
 			line_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.6)) # Dim inactive lines
 			lyrics_container.add_child(line_label)
@@ -230,6 +386,7 @@ func _on_lyrics_fetched(lyrics_data: Dictionary) -> void:
 		plain_label.text = plain_text
 		plain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		plain_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		plain_label.add_theme_font_override("font", _get_sys_font())
 		plain_label.add_theme_font_size_override("font_size", 14)
 		plain_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.8))
 		lyrics_container.add_child(plain_label)
@@ -270,3 +427,8 @@ func _update_lyrics_scroller() -> void:
 				# Dim inactive lines
 				label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.4))
 				label.add_theme_font_size_override("font_size", 13)
+
+func _get_sys_font() -> SystemFont:
+	var sys_font = SystemFont.new()
+	sys_font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
+	return sys_font

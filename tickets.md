@@ -159,8 +159,8 @@ graph TD
     *   Use custom StyleBox assets for buttons and menus.
     *   Incorporate micro-animations (scale up, glossy shifts) on hover states.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Buttons render as glossy, transparent bubble capsules.
-    *   [ ] Hovering triggers scale shifts and subtle glow animations.
+    *   [x] Buttons render as glossy, transparent bubble capsules (implemented Click-Through and Quit bubble buttons).
+    *   [x] Hovering triggers scale shifts and subtle glow animations (integrated dynamic scale tweens on mouse enter/exit).
 
 ---
 
@@ -175,8 +175,8 @@ graph TD
     *   Allow borderless movement using custom mouse offset logic.
     *   Implement toggleable click-through mode.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Click-and-dragging transparent zones moves the window across multiple monitors.
-    *   [ ] Activating click-through mode allows mouse clicks to control behind-overlay files/apps while leaving lyrics visible.
+    *   [x] Click-and-dragging transparent zones moves the window across multiple monitors (handled dynamically in mouse motion input).
+    *   [x] Activating click-through mode allows mouse clicks to control behind-overlay files/apps while leaving lyrics visible (implemented via window_set_mouse_passthrough).
 
 ---
 

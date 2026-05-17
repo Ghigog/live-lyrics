@@ -29,6 +29,10 @@ float noise(vec2 uv){
 }
 
 void fragment() {
+	if (COLOR.a < 0.001) {
+		discard;
+	}
+
 	vec2 warp_dir = UV;
 	warp_dir.x = 1.0 - mix(mix(0.5, 1.0,pow(warp_dir.x, 8.0)), 0.0, pow(1.0 - warp_dir.x, 8.0));
 	warp_dir.y = mix(mix(0.5, 1.0,pow(warp_dir.y, 8.0)), 0.0, pow(1.0 - warp_dir.y, 8.0));
@@ -56,20 +60,13 @@ void fragment() {
 	rim *= rim_light_blend;
 	rim *= rim_mask;
 
-	// Dynamic early-2000s liquid glass shine sweep (Phase 4 requirement)
-	float shine_pos = mod(TIME * 0.25, 2.5) - 0.7; // Periodic diagonal sweep
-	float shine_width = 0.18;
-	float shine_mask = smoothstep(shine_pos - shine_width, shine_pos, UV.x + UV.y) * 
-	                   (1.0 - smoothstep(shine_pos, shine_pos + shine_width, UV.x + UV.y));
-	float shine = shine_mask * 0.15 * edge_mask;
-
 	float grain = clamp(noise(SCREEN_UV), 0.0, 1.0);
 	grain = grain * 2.0 - 1.0;
 	grain = (grain * grain_amount) + 1.0;
 
 	screen *= grain;
 
-	if(COLOR.rgb != shadow_color.rgb){
-		COLOR = screen * vec4(COLOR.rgb, 1.0) + rim + curve_light + brightness + shine;
+	if(distance(COLOR.rgb, shadow_color.rgb) > 0.01){
+		COLOR = screen * vec4(COLOR.rgb, 1.0) + rim + curve_light + brightness;
 	}
 }
