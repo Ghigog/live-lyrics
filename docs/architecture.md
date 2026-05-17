@@ -65,24 +65,29 @@ GDScript does not provide built-in APIs to access system playback controls. We i
 ```
 
 ### 1. Windows (WinRT & PowerShell)
-We query the System Media Transport Controls (SMTC) using a PowerShell polling block executed asynchronously or periodically:
+We query the System Media Transport Controls (SMTC) using an asynchronous PowerShell worker thread that loads Windows Runtime assemblies to pull metadata, playback state, and timeline properties:
 ```powershell
-[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, ContentType=WindowsRuntime] | Out-Null
-$manager = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetResults()
+# Get session manager and current session
+$manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync())
 $session = $manager.GetCurrentSession()
-if ($session) {
-    $props = $session.TryGetMediaPropertiesAsync().GetResults()
-    Write-Output "$($props.Artist) - $($props.Title)"
-}
+
+# 1. Pull current song properties
+$props = Await ($session.TryGetMediaPropertiesAsync())
+
+# 2. Pull timeline properties & calculate authoritative real-time position
+$timeline = $session.GetTimelineProperties()
+$snapshotPosition = $timeline.Position.TotalSeconds
+$lastUpdated = $timeline.LastUpdatedTime
+$elapsed = ([System.DateTimeOffset]::Now - $lastUpdated).TotalSeconds
+$position = $snapshotPosition + ($elapsed * $playbackRate)
 ```
-We trigger this via `OS.execute("powershell", ["-Command", $command])` inside `MediaListener.gd`, parsing the returned string.
+Because the OS SMTC timeline `Position` returns a static snapshot, we perform **Reconciliation Math** in PowerShell to calculate the exact dynamic position. We trigger this via `OS.execute` in a silent background thread inside `MediaListener.gd`, parsing results as `Artist::Title::Album::Position::Duration::IsPlaying`.
 
 ### 2. macOS (AppleScript)
-We query the target media players (Spotify or Music) via OSAScript commands:
+We query active desktop players (e.g. Spotify) using AppleScript commands to pull track details and current playback position:
 ```bash
-osascript -e 'tell application "Spotify" to get artist of current track & " - " & name of current track'
+osascript -e 'tell application "Spotify" to get {artist, name, player position} of current track'
 ```
-We trigger this via `OS.execute("osascript", ["-e", $command])` or by checking if player processes are active.
 
 ---
 
@@ -91,17 +96,19 @@ We trigger this via `OS.execute("osascript", ["-e", $command])` or by checking i
 We utilize **LRCLIB** (`https://lrclib.net`), a high-quality free open-source database of time-synced lyrics.
 
 ### 1. LRCLIB Integration Flow
-- Whenever `GlobalSignals.track_changed` is emitted, `LyricsFetcher.gd` sends an HTTP query:
-  `GET https://lrclib.net/api/get?artist={artist}&title={title}`
+- Whenever `GlobalSignals.track_changed` is emitted, `LyricsFetcher.gd` sends an HTTP query using client-safe headers:
+  `GET https://lrclib.net/api/get?artist_name={artist}&track_name={title}`
 - **Response Structure:**
-  - `plainLyrics`: Full block of text.
-  - `syncedLyrics`: Text containing LRC tags (e.g., `[00:15.30] Hello World`).
+  - `plainLyrics`: Standard plain text block fallback.
+  - `syncedLyrics`: Time-synced text containing standard `[MM:SS.CC]` LRC tags.
 
 ### 2. LRC Parser & Synchronization Engine
-- We split `syncedLyrics` by newlines.
-- Parse each line using a Regex matching `\[(\d{2}):(\d{2})\.(\d{2})\](.*)`:
-  - Convert `[MM:SS.CC]` to total seconds.
-  - Store pairs of `(time_in_seconds, lyric_string)` in a sorted array.
-- During playback, we monitor the song timeline:
-  - Highlight the line where `current_time >= lyric_time` and `current_time < next_lyric_time`.
-  - Smoothly scroll the UI Container up or down.
+- We parse `syncedLyrics` line-by-line using a Regex matching `\[(\d+):(\d+)\.(\d+)\](.*)`:
+  - Convert `[MM:SS.CC]` to total seconds: `total = (min * 60) + sec + (centisec / 100)`.
+  - Store structured results as `{"time": total_seconds, "text": lyric_string}`.
+
+### 3. Client-Side Prediction & Authoritative Reconciliation
+To achieve lag-free, ultra-smooth scrolling:
+*   **Client-Side Prediction:** The UI overlays its own `_process(delta)` frame-loop, incrementing the local timeline `song_time` on every render frame by `delta` (running at a fluid **60+ FPS**).
+*   **Authoritative Reconciliation:** Every 1 second, when `MediaListener.gd` reports a fresh calculation from the OS SMTC, the UI *reconciles* and snaps `song_time` to match the true OS media player time, preventing any timer drift.
+*   **Smooth Tween Scrolling:** Highlight changes trigger hardware-accelerated `Tween` transitions (`set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)`) over `0.3` seconds, centering the active lyric line vertically inside the scroll container.
