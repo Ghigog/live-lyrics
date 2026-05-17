@@ -4,6 +4,26 @@ This file serves as our single source of truth for task tracking, milestones, an
 
 ---
 
+## 📋 Ticket Template
+
+Use this empty blueprint when drafting new tickets to maintain consistent structure and quality:
+
+```markdown
+### 🎫 TICKET-XXX: [Title]
+*   **User Story:** As a [role], I want to [action] so that [benefit].
+*   **Context:** [Current state of the codebase/systems].
+*   **Description:** [Detailed description of the task scope and what needs to change].
+*   **Requirements:**
+    *   [Technical rule, constraint, or dependency 1]
+    *   [Technical rule, constraint, or dependency 2]
+*   **Verification Plan (Acceptance Criteria):**
+    *   [ ] [Test step, expected result, or Gherkin check 1]
+    *   [ ] [Test step, expected result, or Gherkin check 2]
+```
+
+---
+
+
 ## 🗺️ Roadmap Overview
 
 ```mermaid
@@ -78,7 +98,7 @@ graph TD
     *   Parse the stdout into clean strings separating "Title" and "Artist".
     *   Emit changes via `GlobalSignals.track_changed`.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Changing active tracks on Spotify or Windows Media Player triggers `track_changed` output in console within 2 seconds.
+    *   [x] Changing active tracks on Spotify or Windows Media Player triggers `track_changed` output in console within 2 seconds (Windows WinRT integration verified).
     *   [ ] Under macOS, changing track in Apple Music or Spotify correctly updates console logs.
 
 ---
@@ -95,8 +115,8 @@ graph TD
     *   Format query strings securely using `uri_encode()`.
     *   Safely extract `syncedLyrics` or fallback to `plainLyrics` if time stamps are unavailable.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Sending HTTP queries for popular music yields structured JSON with lyrics.
-    *   [ ] Successfully emits parsed timestamp data to the scroller.
+    *   [x] Sending HTTP queries for popular music yields structured JSON with lyrics (verified via LRCLIB client integration).
+    *   [x] Successfully emits parsed timestamp data to the scroller.
 
 ---
 

@@ -1,7 +1,7 @@
 extends Node
 
 # Signal emitted when a new track is detected by the MediaListener
-signal track_changed(title: String, artist: String)
+signal track_changed(title: String, artist: String, album: String)
 
 # Signal emitted when lyrics are successfully fetched and parsed
 # lyrics_data contains: { "synced": bool, "lines": Array[Dictionary] }

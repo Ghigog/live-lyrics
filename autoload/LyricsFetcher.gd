@@ -43,8 +43,8 @@ func _ready() -> void:
 	
 	GlobalSignals.track_changed.connect(_on_track_changed)
 
-func _on_track_changed(title: String, artist: String) -> void:
-	print("[LyricsFetcher] Triggering fetch for: %s by %s" % [title, artist])
+func _on_track_changed(title: String, artist: String, album: String) -> void:
+	print("[LyricsFetcher] Triggering fetch for: %s by %s (Album: %s)" % [title, artist, album])
 	
 	# Check mock database first if playing mock tracks
 	if title in _mock_lrc_database:
@@ -56,27 +56,38 @@ func _on_track_changed(title: String, artist: String) -> void:
 		print("[LyricsFetcher] Found mock lyrics for: %s" % title)
 		return
 	
-	# Online fetching (Future implementation)
-	# fetch_lyrics_online(title, artist)
+	# Trigger real online query
+	fetch_lyrics_online(title, artist)
 
 func fetch_lyrics_online(title: String, artist: String) -> void:
 	var url = "https://lrclib.net/api/get?artist=%s&title=%s" % [
 		artist.uri_encode(),
 		title.uri_encode()
 	]
-	var err = http_client.request(url)
+	var headers = [
+		"User-Agent: LiveLyricsOverlay/1.0 (github.com/Ghigog/live-lyrics)"
+	]
+	var err = http_client.request(url, headers)
 	if err != OK:
 		print("[LyricsFetcher] HTTP request failed to initialize.")
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		print("[LyricsFetcher] Failed to retrieve lyrics, Response code: %d" % response_code)
+		GlobalSignals.lyrics_fetched.emit({
+			"synced": false,
+			"plain": "Lyrics not found online."
+		})
 		return
 		
 	var json = JSON.new()
 	var err = json.parse(body.get_string_from_utf8())
 	if err != OK:
 		print("[LyricsFetcher] Failed to parse JSON response.")
+		GlobalSignals.lyrics_fetched.emit({
+			"synced": false,
+			"plain": "Failed to parse retrieved lyrics data."
+		})
 		return
 		
 	var data = json.get_data()
@@ -91,6 +102,8 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		else:
 			# Fallback to plain lyrics if synced not available
 			var plain_text = data.get("plainLyrics", "")
+			if plain_text.is_empty():
+				plain_text = "No lyrics text found in database."
 			GlobalSignals.lyrics_fetched.emit({
 				"synced": false,
 				"plain": plain_text

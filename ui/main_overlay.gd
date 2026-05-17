@@ -17,7 +17,7 @@ var song_duration: float = 20.0 # Match MediaListener cycle time for mock tracks
 
 # Drag to move variables
 var dragging: bool = false
-var drag_position: Vector2 = Vector2()
+var drag_position: Vector2i = Vector2i()
 
 # Click-through toggle state
 var click_through_enabled: bool = false
@@ -115,7 +115,7 @@ func _build_ui_layout() -> void:
 	scroll_container = ScrollContainer.new()
 	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_HIDDEN
+	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	h_box.add_child(scroll_container)
 	
 	lyrics_container = VBoxContainer.new()
@@ -146,7 +146,7 @@ func _input(event: InputEvent) -> void:
 func toggle_click_through() -> void:
 	click_through_enabled = !click_through_enabled
 	if click_through_enabled:
-		DisplayServer.window_set_mouse_passthrough(DisplayServer.window_get_active_mouse_pixel_opacity_threshold())
+		DisplayServer.window_set_mouse_passthrough(PackedVector2Array([Vector2(-1, -1)]))
 		panel.self_modulate.a = 0.4 # Fade overlay visually when click-through is enabled
 		print("[MainOverlay] Mouse click-through ENABLED")
 	else:
@@ -154,8 +154,11 @@ func toggle_click_through() -> void:
 		panel.self_modulate.a = 1.0
 		print("[MainOverlay] Mouse click-through DISABLED")
 
-func _on_track_changed(title: String, artist: String) -> void:
-	track_label.text = "%s\nby %s" % [title, artist]
+func _on_track_changed(title: String, artist: String, album: String) -> void:
+	var display_text = "%s\nby %s" % [title, artist]
+	if not album.is_empty():
+		display_text += "\n[%s]" % album
+	track_label.text = display_text
 	# Reset lyric scroller timing on song change
 	song_time = 0.0
 	active_line_index = -1
@@ -165,16 +168,28 @@ func _on_lyrics_fetched(lyrics_data: Dictionary) -> void:
 	for child in lyrics_container.get_children():
 		child.queue_free()
 	
-	lyrics_list = lyrics_data.get("lines", [])
-	
-	# Instantiate labels for each lyric line
-	for line in lyrics_list:
-		var line_label = Label.new()
-		line_label.text = line.get("text", "")
-		line_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		line_label.add_theme_font_size_override("font_size", 14)
-		line_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.6)) # Dim inactive lines
-		lyrics_container.add_child(line_label)
+	if lyrics_data.get("synced", false):
+		lyrics_list = lyrics_data.get("lines", [])
+		
+		# Instantiate labels for each lyric line
+		for line in lyrics_list:
+			var line_label = Label.new()
+			line_label.text = line.get("text", "")
+			line_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			line_label.add_theme_font_size_override("font_size", 14)
+			line_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.6)) # Dim inactive lines
+			lyrics_container.add_child(line_label)
+	else:
+		# Display plain lyrics or error messages (e.g. Lyrics not found)
+		lyrics_list = []
+		var plain_text = lyrics_data.get("plain", "No lyrics available.")
+		var plain_label = Label.new()
+		plain_label.text = plain_text
+		plain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		plain_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		plain_label.add_theme_font_size_override("font_size", 14)
+		plain_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0, 0.8))
+		lyrics_container.add_child(plain_label)
 
 func _update_lyrics_scroller() -> void:
 	if lyrics_list.size() == 0:
