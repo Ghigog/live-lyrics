@@ -58,34 +58,99 @@ func _thread_poll() -> void:
 		OS.delay_msec(int(poll_interval * 1000.0))
 
 func _poll_os_media() -> Array:
-	if OS.get_name() != "Windows":
-		return []
+	var os = OS.get_name()
+	if os == "Windows":
+		var output = []
+		var exit_code = OS.execute(
+			"powershell.exe", 
+			["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", _script_path], 
+			output, 
+			true,
+			false
+		)
 		
-	var output = []
-	var exit_code = OS.execute(
-		"powershell.exe", 
-		["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", _script_path], 
-		output, 
-		true,
-		false
-	)
-	
-	if exit_code == 0 and output.size() > 0:
-		var raw_out = output[0].strip_edges()
-		if raw_out.begins_with("ERROR::") or raw_out == "NONE":
-			return []
-		
-		var parts = raw_out.split("::")
-		if parts.size() == 6:
-			return [
-				parts[0].strip_edges(), # Artist
-				parts[1].strip_edges(), # Title
-				parts[2].strip_edges(), # Album
-				parts[3].strip_edges().to_float(), # Position
-				parts[4].strip_edges().to_float(), # Duration
-				parts[5].strip_edges() == "true" # IsPlaying
-			]
+		if exit_code == 0 and output.size() > 0:
+			var raw_out = output[0].strip_edges()
+			if raw_out.begins_with("ERROR::") or raw_out == "NONE":
+				return []
 			
+			var parts = raw_out.split("::")
+			if parts.size() == 6:
+				return [
+					parts[0].strip_edges(), # Artist
+					parts[1].strip_edges(), # Title
+					parts[2].strip_edges(), # Album
+					parts[3].strip_edges().to_float(), # Position
+					parts[4].strip_edges().to_float(), # Duration
+					parts[5].strip_edges() == "true" # IsPlaying
+				]
+	elif os == "macOS" or os == "OSX":
+		var apple_script = '
+		try
+			if application "Spotify" is running then
+				tell application "Spotify"
+					try
+						set art to artist of current track
+						set nm to name of current track
+						set alb to album of current track
+						set pos to player position
+						set dur to (duration of current track) / 1000.0
+						set pl to "false"
+						if player state is playing then
+							set pl to "true"
+						end if
+						return art & "::" & nm & "::" & alb & "::" & pos & "::" & dur & "::" & pl
+					end try
+				end tell
+			end if
+		end try
+
+		try
+			if application "Music" is running then
+				tell application "Music"
+					try
+						set art to artist of current track
+						set nm to name of current track
+						set alb to album of current track
+						set pos to player position
+						set dur to duration of current track
+						set pl to "false"
+						if player state is playing then
+							set pl to "true"
+						end if
+						return art & "::" & nm & "::" & alb & "::" & pos & "::" & dur & "::" & pl
+					end try
+				end tell
+			end if
+		end try
+
+		return "NONE"
+		'
+		var output = []
+		var exit_code = OS.execute(
+			"osascript",
+			["-e", apple_script],
+			output,
+			true,
+			false
+		)
+		
+		if exit_code == 0 and output.size() > 0:
+			var raw_out = output[0].strip_edges()
+			if raw_out == "NONE" or raw_out.is_empty():
+				return []
+				
+			var parts = raw_out.split("::")
+			if parts.size() == 6:
+				return [
+					parts[0].strip_edges(), # Artist
+					parts[1].strip_edges(), # Title
+					parts[2].strip_edges(), # Album
+					parts[3].strip_edges().to_float(), # Position
+					parts[4].strip_edges().to_float(), # Duration
+					parts[5].strip_edges() == "true" # IsPlaying
+				]
+				
 	return []
 
 func _update_media_state(title: String, artist: String, album: String, position: float, duration: float, is_playing: bool) -> void:
