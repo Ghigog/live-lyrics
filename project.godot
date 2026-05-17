@@ -11,10 +11,14 @@ config_version=5
 [application]
 
 config/name="live-lyrics"
+config/version="1.0.0"
 run/main_scene="res://ui/main_overlay.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 run/low_processor_mode=true
-boot_splash/show_image=false
+boot_splash/bg_color=Color(0.14117648, 0.14117648, 0.14117648, 0)
+boot_splash/use_filter=false
+boot_splash/image="uid://cpqf6sxy3o4nl"
+config/icon="uid://cpqf6sxy3o4nl"
 
 [autoload]
 
