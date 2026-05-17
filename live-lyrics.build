@@ -1,0 +1,41 @@
+{
+	"disabled_build_options": {
+		"disable_3d": true,
+		"disable_3d_physics": true,
+		"disable_navigation": true,
+		"module_camera_enabled": false,
+		"module_csg_enabled": false,
+		"module_enet_enabled": false,
+		"module_gridmap_enabled": false,
+		"module_hdr_enabled": false,
+		"module_jsonrpc_enabled": false,
+		"module_lightmapper_rd_enabled": false,
+		"module_mbedtls_enabled": false,
+		"module_meshoptimizer_enabled": false,
+		"module_mobile_vr_enabled": false,
+		"module_multiplayer_enabled": false,
+		"module_navigation_enabled": false,
+		"module_noise_enabled": false,
+		"module_ogg_enabled": false,
+		"module_openxr_enabled": false,
+		"module_raycast_enabled": false,
+		"module_squish_enabled": false,
+		"module_theora_enabled": false,
+		"module_tinyexr_enabled": false,
+		"module_upnp_enabled": false,
+		"module_vhacd_enabled": false,
+		"module_vorbis_enabled": false,
+		"module_webrtc_enabled": false,
+		"module_websocket_enabled": false,
+		"module_xatlas_unwrap_enabled": false
+	},
+	"disabled_classes": [
+		"Node3D",
+		"AudioStreamPlayer3D",
+		"Camera3D",
+		"Skeleton3D",
+		"NavigationRegion3D",
+		"PhysicsBody3D"
+	],
+	"type": "build_profile"
+}

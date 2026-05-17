@@ -189,5 +189,5 @@ graph TD
     *   Support macOS and Windows builds.
     *   Maintain RAM footprint under 50MB and startup time under 1 second.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [ ] Packaged build runs as a standalone lightweight desktop utility.
-    *   [ ] Average RAM footprint monitored under active scroll state is minimal.
+    *   [x] Packaged build runs as a standalone lightweight desktop utility.
+    *   [x] Average RAM footprint monitored under active scroll state is minimal.
