@@ -14,6 +14,8 @@ shader_parameter/curve_light_blend = 0.5
 shader_parameter/rim_light_blend = 0.8
 shader_parameter/shadow_color = Color(0, 0, 0, 1)
 
+[sub_resource type="Theme" id="Theme_hc7p6"]
+
 [node name="MainOverlay" type="Control" unique_id=217830047]
 material = SubResource("ShaderMaterial_8tisn")
 layout_mode = 3
@@ -22,4 +24,5 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_hc7p6")
 script = ExtResource("1_1")

@@ -42,24 +42,25 @@ func _process(delta: float) -> void:
 		_update_lyrics_scroller()
 
 func _build_ui_layout() -> void:
-	# 1. Glass Panel Container (Frutiger Aero Aesthetic)
-	panel = PanelContainer.new()
+	# 1. Decoupled Y2K Glass Background Panel (Avoids squishing internal margins)
+	panel = Panel.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
-	# Y2K Glass StyleBox
+	# Y2K Glass StyleBox (Ported from pneumaturgy-godot's base_stylebox math)
 	var glass_style = StyleBoxFlat.new()
-	glass_style.bg_color = Color(0.0, 0.45, 0.65, 0.25) # Soft aqua blue semi-transparent
-	glass_style.border_width_left = 2
-	glass_style.border_width_top = 2
-	glass_style.border_width_right = 2
-	glass_style.border_width_bottom = 2
-	glass_style.border_color = Color(0.3, 0.8, 1.0, 0.6) # Glossy glowing border
-	glass_style.corner_radius_top_left = 12
-	glass_style.corner_radius_top_right = 12
-	glass_style.corner_radius_bottom_left = 12
-	glass_style.corner_radius_bottom_right = 12
-	glass_style.shadow_color = Color(0, 0, 0, 0.15)
-	glass_style.shadow_size = 10
+	glass_style.bg_color = Color(0.0, 0.35, 0.55, 0.05) # Soft center transparent tint
+	glass_style.border_width_left = 64
+	glass_style.border_width_top = 64
+	glass_style.border_width_right = 64
+	glass_style.border_width_bottom = 64
+	glass_style.border_color = Color(0.2, 0.75, 0.95, 0.5) # Glowing glass blended border
+	glass_style.border_blend = true
+	glass_style.corner_radius_top_left = 48
+	glass_style.corner_radius_top_right = 48
+	glass_style.corner_radius_bottom_left = 48
+	glass_style.corner_radius_bottom_right = 48
+	glass_style.shadow_color = Color(0, 0, 0, 0.12)
+	glass_style.shadow_size = 32
 	panel.add_theme_stylebox_override("panel", glass_style)
 	
 	# Load and apply the custom pneumaturgy-godot Y2K Liquid-Glass Shader
@@ -77,13 +78,14 @@ func _build_ui_layout() -> void:
 	
 	add_child(panel)
 	
-	# 2. Main Margin layout
+	# 2. Main Content Margin layout (Sibling to glass panel, free from border constraints)
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	panel.add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 32)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 32)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	add_child(margin)
 	
 	# 3. Horizontal Splitter (Left: Track Info, Right: Lyrics Scroller)
 	var h_box = HBoxContainer.new()
