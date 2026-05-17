@@ -145,8 +145,8 @@ graph TD
     *   Use CanvasItem shader reading screen mipmaps (`hint_screen_texture`).
     *   Maintain frame rate above 60 FPS while applying heavy blurring overlays.
 *   **Verification Plan (Acceptance Criteria):**
-    *   [x] Custom shader blurs background and creates a glowing aqua border.
-    *   [ ] Add shiny liquid animation cycles that respond smoothly to frame rates.
+    *   [x] Custom shader blurs background and creates a glowing aqua border (integrated pneumaturgy glass base).
+    *   [x] Add shiny liquid animation cycles that respond smoothly to frame rates (implemented via time-dynamic diagonal sweeps).
 
 ---
 

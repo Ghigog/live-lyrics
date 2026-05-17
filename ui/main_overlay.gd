@@ -61,6 +61,20 @@ func _build_ui_layout() -> void:
 	glass_style.shadow_color = Color(0, 0, 0, 0.15)
 	glass_style.shadow_size = 10
 	panel.add_theme_stylebox_override("panel", glass_style)
+	
+	# Load and apply the custom pneumaturgy-godot Y2K Liquid-Glass Shader
+	var shader_material = ShaderMaterial.new()
+	shader_material.shader = load("res://assets/shaders/glass_panel.gdshader")
+	shader_material.set_shader_parameter("brightness", 0.08)
+	shader_material.set_shader_parameter("chromatic_shift_amount", 0.15)
+	shader_material.set_shader_parameter("bend_amount", 0.25)
+	shader_material.set_shader_parameter("blur_amount", 3.0) # Sleek blurred desktop background refraction
+	shader_material.set_shader_parameter("grain_amount", 0.03) # Subtle organic grain texture
+	shader_material.set_shader_parameter("curve_light_blend", 0.5)
+	shader_material.set_shader_parameter("rim_light_blend", 0.7)
+	shader_material.set_shader_parameter("shadow_color", Color(0, 0, 0, 0.15))
+	panel.material = shader_material
+	
 	add_child(panel)
 	
 	# 2. Main Margin layout
