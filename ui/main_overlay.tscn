@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://crlxc8u2imgrh" path="res://ui/main_overlay.gd" id="1_1"]
 [ext_resource type="Shader" uid="uid://8k0g0de34xv1" path="res://assets/shaders/glass_panel.gdshader" id="1_hc7p6"]
+[ext_resource type="SystemFont" uid="uid://clev03r6ldut1" path="res://assets/fonts/system_fonts.tres" id="2_hc7p6"]
 [ext_resource type="Theme" uid="uid://dhdmmuwicstn7" path="res://assets/shaders/default_theme.tres" id="3_8tisn"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_q121i"]
@@ -33,4 +34,70 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme = ExtResource("3_8tisn")
+
+[node name="margin" type="MarginContainer" parent="." unique_id=987762575]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 8
+
+[node name="h_box" type="HBoxContainer" parent="margin" unique_id=1237950793]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="track_vbox" type="VBoxContainer" parent="margin/h_box" unique_id=165886769]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+
+[node name="title_hbox" type="HBoxContainer" parent="margin/h_box/track_vbox" unique_id=576534898]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="title_label" type="Label" parent="margin/h_box/track_vbox/title_hbox" unique_id=1593951376]
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0.5, 0.8, 0.5)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("2_hc7p6")
+theme_override_font_sizes/font_size = 24
+text = "\"Waiting for Media...\""
+
+[node name="sub_margin" type="MarginContainer" parent="margin/h_box/track_vbox/title_hbox" unique_id=1281247575]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_bottom = 6
+
+[node name="subtitle_label" type="Label" parent="margin/h_box/track_vbox/title_hbox/sub_margin" unique_id=1221766583]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.8, 0.9, 1, 0.8)
+theme_override_fonts/font = ExtResource("2_hc7p6")
+theme_override_font_sizes/font_size = 12
+
+[node name="scroll_container" type="ScrollContainer" parent="margin/h_box" unique_id=255190566]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="lyrics_container" type="VBoxContainer" parent="margin/h_box/scroll_container" unique_id=24202502]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8

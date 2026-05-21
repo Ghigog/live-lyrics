@@ -4,11 +4,16 @@ extends Control
 ## window, handles drag-to-move window interaction, and handles scroll-sync of lyrics.
 
 # UI Elements created dynamically
-var panel: Panel
-var title_label: Label
-var subtitle_label: Label
-var lyrics_container: VBoxContainer
-var scroll_container: ScrollContainer
+#var panel: Panel
+@onready var panel: Panel = $Panel
+#var title_label: Label
+@onready var title_label: Label = $margin/h_box/track_vbox/title_hbox/title_label
+#var subtitle_label: Label
+@onready var subtitle_label: Label = $margin/h_box/track_vbox/title_hbox/sub_margin/subtitle_label
+#var lyrics_container: VBoxContainer
+@onready var lyrics_container: VBoxContainer = $margin/h_box/scroll_container/lyrics_container
+#var scroll_container: ScrollContainer
+@onready var scroll_container: ScrollContainer = $margin/h_box/scroll_container
 
 # Lyric display tracking
 var lyrics_list: Array[Dictionary] = []
@@ -26,13 +31,13 @@ const RESIZE_BORDER: float = 12.0 # Detect range in pixels
 
 func _ready() -> void:
 	# Ensure window background is transparent (GL Compatibility renderer supports this)
-	get_window().transparent_bg = true
+	#get_window().transparent_bg = true
 	
 	# Force the rendering clear color to fully transparent so no dark backdrop leaks through
-	RenderingServer.set_default_clear_color(Color(0, 0, 0, 0))
+	#RenderingServer.set_default_clear_color(Color(0, 0, 0, 0))
 	
 	# Programmatic UI setup
-	_build_ui_layout()
+	#_build_ui_layout()
 	
 	# Connect to core signal bus
 	GlobalSignals.track_changed.connect(_on_track_changed)
@@ -51,107 +56,107 @@ func _process(delta: float) -> void:
 		song_time = min(song_time + delta, song_duration)
 		_update_lyrics_scroller()
 
-func _build_ui_layout() -> void:
-	# 1. Glass Background Panel
-	# Prefer the scene-defined child Panel so the user can edit it directly in the editor.
-	# If no Panel child exists (e.g. first run without the tscn), create one as a fallback.
-	if has_node("Panel"):
-		panel = get_node("Panel") as Panel
-		# Ensure it covers the full window (already set in tscn, belt-and-suspenders here)
-		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		# NOTE: Shader params are intentionally NOT overridden here — respect whatever
-		# the user has set on the ShaderMaterial in the Godot editor.
-	else:
-		# Fallback: programmatically create the glass panel if scene child is missing
-		panel = Panel.new()
-		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		
-		var glass_style = load("res://assets/shaders/base_stylebox.tres") as StyleBox
-		panel.add_theme_stylebox_override("panel", glass_style)
-		
-		var shader_material = ShaderMaterial.new()
-		shader_material.shader = load("res://assets/shaders/glass_panel.gdshader")
-		shader_material.set_shader_parameter("brightness", 0.1)
-		shader_material.set_shader_parameter("chromatic_shift_amount", 0.2)
-		shader_material.set_shader_parameter("bend_amount", 0.4)
-		shader_material.set_shader_parameter("blur_amount", 2.5)
-		shader_material.set_shader_parameter("grain_amount", 0.05)
-		shader_material.set_shader_parameter("curve_light_blend", 0.5)
-		shader_material.set_shader_parameter("rim_light_blend", 0.8)
-		shader_material.set_shader_parameter("shadow_color", Color(0, 0, 0, 1))
-		panel.material = shader_material
-		
-		add_child(panel)
-	
-	# 2. Main Content Margin layout (Sibling to glass panel, free from border constraints)
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 32)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 32)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	add_child(margin)
-	
-	# 3. Horizontal Splitter (Left: Track Info, Right: Lyrics Scroller)
-	var h_box = HBoxContainer.new()
-	h_box.add_theme_constant_override("separation", 20)
-	margin.add_child(h_box)
-	
-	# Left Side: Track metadata
-	var track_vbox = VBoxContainer.new()
-	track_vbox.custom_minimum_size = Vector2(200, 0)
-	track_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	track_vbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h_box.add_child(track_vbox)
-	
-	# Create a crisp Segoe UI SystemFont stack (Phase 4 requirement)
-	var sys_font = SystemFont.new()
-	sys_font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
-	
-	var title_hbox = HBoxContainer.new()
-	title_hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
-	title_hbox.add_theme_constant_override("separation", 12)
-	track_vbox.add_child(title_hbox)
-	
-	# Title Label
-	title_label = Label.new()
-	title_label.text = "Waiting for Media..."
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	title_label.add_theme_font_override("font", sys_font)
-	title_label.add_theme_font_size_override("font_size", 24)
-	title_label.add_theme_color_override("font_shadow_color", Color(0, 0.5, 0.8, 0.5))
-	title_label.add_theme_constant_override("shadow_offset_x", 1)
-	title_label.add_theme_constant_override("shadow_offset_y", 1)
-	title_hbox.add_child(title_label)
-	
-	# Subtitle Label
-	subtitle_label = Label.new()
-	subtitle_label.text = ""
-	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	subtitle_label.size_flags_vertical = Control.SIZE_SHRINK_END # Align with bottom of title
-	subtitle_label.add_theme_font_override("font", sys_font)
-	subtitle_label.add_theme_font_size_override("font_size", 12)
-	subtitle_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0, 0.8))
-	
-	# Subtitle Margin trick for better baseline alignment with the 24px title font
-	var sub_margin = MarginContainer.new()
-	sub_margin.add_theme_constant_override("margin_bottom", 6)
-	sub_margin.add_child(subtitle_label)
-	title_hbox.add_child(sub_margin)
-	
-	# Right Side: Lyrics Scroller
-	scroll_container = ScrollContainer.new()
-	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll_container.custom_minimum_size = Vector2(250, 0)
-	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	h_box.add_child(scroll_container)
-	
-	lyrics_container = VBoxContainer.new()
-	lyrics_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lyrics_container.add_theme_constant_override("separation", 8)
-	scroll_container.add_child(lyrics_container)
+#func _build_ui_layout() -> void:
+	## 1. Glass Background Panel
+	## Prefer the scene-defined child Panel so the user can edit it directly in the editor.
+	## If no Panel child exists (e.g. first run without the tscn), create one as a fallback.
+	#if has_node("Panel"):
+		#panel = get_node("Panel") as Panel
+		## Ensure it covers the full window (already set in tscn, belt-and-suspenders here)
+		#panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		## NOTE: Shader params are intentionally NOT overridden here — respect whatever
+		## the user has set on the ShaderMaterial in the Godot editor.
+	#else:
+		## Fallback: programmatically create the glass panel if scene child is missing
+		#panel = Panel.new()
+		#panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		#
+		#var glass_style = load("res://assets/shaders/base_stylebox.tres") as StyleBox
+		#panel.add_theme_stylebox_override("panel", glass_style)
+		#
+		#var shader_material = ShaderMaterial.new()
+		#shader_material.shader = load("res://assets/shaders/glass_panel.gdshader")
+		#shader_material.set_shader_parameter("brightness", 0.1)
+		#shader_material.set_shader_parameter("chromatic_shift_amount", 0.2)
+		#shader_material.set_shader_parameter("bend_amount", 0.4)
+		#shader_material.set_shader_parameter("blur_amount", 2.5)
+		#shader_material.set_shader_parameter("grain_amount", 0.05)
+		#shader_material.set_shader_parameter("curve_light_blend", 0.5)
+		#shader_material.set_shader_parameter("rim_light_blend", 0.8)
+		#shader_material.set_shader_parameter("shadow_color", Color(0, 0, 0, 1))
+		#panel.material = shader_material
+		#
+		#add_child(panel)
+	#
+	## 2. Main Content Margin layout (Sibling to glass panel, free from border constraints)
+	#var margin = MarginContainer.new()
+	#margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	#margin.add_theme_constant_override("margin_left", 32)
+	#margin.add_theme_constant_override("margin_top", 8)
+	#margin.add_theme_constant_override("margin_right", 32)
+	#margin.add_theme_constant_override("margin_bottom", 8)
+	#add_child(margin)
+	#
+	## 3. Horizontal Splitter (Left: Track Info, Right: Lyrics Scroller)
+	#var h_box = HBoxContainer.new()
+	#h_box.add_theme_constant_override("separation", 20)
+	#margin.add_child(h_box)
+	#
+	## Left Side: Track metadata
+	#var track_vbox = VBoxContainer.new()
+	#track_vbox.custom_minimum_size = Vector2(200, 0)
+	#track_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	#track_vbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	#h_box.add_child(track_vbox)
+	#
+	## Create a crisp Segoe UI SystemFont stack (Phase 4 requirement)
+	#var sys_font = SystemFont.new()
+	#sys_font.font_names = PackedStringArray(["Segoe UI", "Trebuchet MS", "Arial"])
+	#
+	#var title_hbox = HBoxContainer.new()
+	#title_hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+	#title_hbox.add_theme_constant_override("separation", 12)
+	#track_vbox.add_child(title_hbox)
+	#
+	## Title Label
+	#title_label = Label.new()
+	#title_label.text = "Waiting for Media..."
+	#title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	#title_label.add_theme_font_override("font", sys_font)
+	#title_label.add_theme_font_size_override("font_size", 24)
+	#title_label.add_theme_color_override("font_shadow_color", Color(0, 0.5, 0.8, 0.5))
+	#title_label.add_theme_constant_override("shadow_offset_x", 1)
+	#title_label.add_theme_constant_override("shadow_offset_y", 1)
+	#title_hbox.add_child(title_label)
+	#
+	## Subtitle Label
+	#subtitle_label = Label.new()
+	#subtitle_label.text = ""
+	#subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	#subtitle_label.size_flags_vertical = Control.SIZE_SHRINK_END # Align with bottom of title
+	#subtitle_label.add_theme_font_override("font", sys_font)
+	#subtitle_label.add_theme_font_size_override("font_size", 12)
+	#subtitle_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0, 0.8))
+	#
+	## Subtitle Margin trick for better baseline alignment with the 24px title font
+	#var sub_margin = MarginContainer.new()
+	#sub_margin.add_theme_constant_override("margin_bottom", 6)
+	#sub_margin.add_child(subtitle_label)
+	#title_hbox.add_child(sub_margin)
+	#
+	## Right Side: Lyrics Scroller
+	#scroll_container = ScrollContainer.new()
+	#scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	#scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	#scroll_container.custom_minimum_size = Vector2(250, 0)
+	#scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	#scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	#h_box.add_child(scroll_container)
+	#
+	#lyrics_container = VBoxContainer.new()
+	#lyrics_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	#lyrics_container.add_theme_constant_override("separation", 8)
+	#scroll_container.add_child(lyrics_container)
 
 ## Handles window movement dragging and OS-native borderless resizing.
 ## Resize is delegated to the OS via start_resize_move_mode() for smooth, hardware-accelerated
@@ -183,10 +188,7 @@ func _input(event: InputEvent) -> void:
 			else:
 				dragging = false
 				
-		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			# Exit overlay on Right Click
-			get_tree().quit()
-			
+
 	elif event is InputEventMouseMotion:
 		if dragging:
 			DisplayServer.window_set_position(DisplayServer.mouse_get_position() - drag_position)

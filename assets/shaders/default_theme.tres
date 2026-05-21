@@ -1,6 +1,11 @@
 [gd_resource type="Theme" format=3 uid="uid://dhdmmuwicstn7"]
 
 [ext_resource type="StyleBox" uid="uid://db8ltl18fdi1n" path="res://assets/shaders/base_stylebox.tres" id="1_ghw6j"]
+[ext_resource type="StyleBox" uid="uid://bdt8lgvcp785d" path="res://assets/shaders/base_stylebox_press.tres" id="1_llnon"]
+[ext_resource type="StyleBox" uid="uid://urapy2tpr2nn" path="res://assets/shaders/base_stylebox_button.tres" id="2_jcot4"]
 
 [resource]
+Button/styles/hover_pressed = ExtResource("1_llnon")
+Button/styles/normal = ExtResource("2_jcot4")
+Button/styles/pressed = ExtResource("1_llnon")
 Panel/styles/panel = ExtResource("1_ghw6j")
